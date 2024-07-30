@@ -30,8 +30,9 @@ TEXT = {
         'limitations': "Limitations:",
         'limitations_details': [
             "• Addon will generate a mask map and search for a texture connected to the following shader nodes:",
-            "  - Metallic, Roughness, Emission Color, and Specular Tint.",
+            "  • Metallic, Roughness, Emission Color, and Specular Tint.",
             "• Only supports Principled BSDF (PBR); not all models will work due to various reasons.",
+            "• Materials can't share the same name: if they're the exact same, join all meshes together.",
             "• Emission and Specular features are untested."
         ],
         'tips_for_bakin': "Tips for BAKIN:",
@@ -55,8 +56,9 @@ TEXT = {
         'limitations': "制限事項:",
         'limitations_details': [
             "• アドオンはマスクマップを生成し、次のシェーダーノードに接続されたテクスチャを検索します:",
-            "  - メタリック、ラフネス、エミッシブカラー、スペキュラー",
+            "  • メタリック、ラフネス、エミッシブカラー、スペキュラー",
             "• Principled BSDF (PBR) のみサポートされており、さまざまな理由でモデルが機能しないことがあります。",
+            "• マテリアルは同じ名前を共有することはできません：それらが完全に同じであれば、すべてのメッシュを一緒に結合します。"
             "• エミッシブとスペキュラー機能は未検証です。"
         ],
         'tips_for_bakin': "BAKIN のためのヒント:",
@@ -80,8 +82,9 @@ TEXT = {
         'limitations': "限制:",
         'limitations_details': [
             "• 插件将生成蒙版贴图，并搜索连接到以下着色器节点的纹理:",
-            "  - 金属度、粗糙度、自发光颜色和高光色调。",
+            "  • 金属度、粗糙度、自发光颜色和高光色调。",
             "• 仅支持 Principled BSDF (PBR)；由于各种原因，并非所有模型都能正常工作。",
+            "• 材料不能共享相同的名称：如果完全相同，则将所有网格连接在一起",
             "• 自发光和高光功能尚未测试。"
         ],
         'tips_for_bakin': "BAKIN 提示:",
