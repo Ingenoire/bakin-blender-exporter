@@ -17,7 +17,7 @@ import re
 
 from bpy.types import Operator, Panel
 
-# Define text for both languages
+# Define text for all languages
 TEXT = {
     'en': {
         'model_name': "Model Name",
@@ -68,7 +68,43 @@ TEXT = {
         ],
         'save_warning': "エクスポートするにはブレンドファイルを保存してください!",
         'export_button': "FBX + DEF エクスポート"
+    },
+    'zh': {
+        'model_name': "模型名称",
+        'mask_map_options': "蒙版贴图选项",
+        'invert_roughness': "反转粗糙度",
+        'invert_metallic': "反转金属度",
+        'invert_emissive': "反转自发光",
+        'invert_specular': "反转高光",
+        'important_info': "重要信息:",
+        'limitations': "限制:",
+        'limitations_details': [
+            "• 插件将生成蒙版贴图，并搜索连接到以下着色器节点的纹理:",
+            "  - 金属度、粗糙度、自发光颜色和高光色调。",
+            "• 仅支持 Principled BSDF (PBR)；由于各种原因，并非所有模型都能正常工作。",
+            "• 自发光和高光功能尚未测试。"
+        ],
+        'tips_for_bakin': "BAKIN 提示:",
+        'tips_details': [
+            "• 在纹理选项卡下，可以考虑为某些纹理开启 SRGB。",
+            "• 改善外观的其他可能性：适度禁用模型部分的顶点压缩，",
+            "  或将法线纹理设置为纹理部分的“用途: 法线”。",
+            "• 但是，我不是3D建模专家。 :("
+        ],
+        'save_warning': "请保存blend文件以进行导出！",
+        'export_button': "导出 FBX + DEF"
     }
+}
+
+texture_dict = {
+    'Base Color': "AMap",
+    'Normal': "NMap",
+    'LitMap': "LitMap",
+    'ShadeMap': "ShadeMap",
+    'NormalMap': "NormalMap",
+    'EmiMap': "EmiMap",
+    'MCMap': "MCMap",
+    'outlineWeight': "outlineWeight"
 }
 
 class ExportFBXOperator(Operator):
@@ -169,6 +205,9 @@ def generate_unity_mask_map(material, output_path):
     roughness_tex_image = get_image_from_node(principled_bsdf.inputs.get('Roughness', None))
     emissive_tex_image = get_image_from_node(principled_bsdf.inputs.get('Emission Color', None))
     specular_tex_image = get_image_from_node(principled_bsdf.inputs.get('Specular Tint', None))
+    
+    if(specular_tex_image == None):
+        specular_tex_image = get_image_from_node(principled_bsdf.inputs.get('IOR Level', None))
 
     # Default size if no textures are found
     width, height = 1024, 1024
@@ -269,6 +308,7 @@ class SimpleOperatorPanel(Panel):
         row = layout.row()
         row.operator("wm.switch_language", text="English").language = 'en'
         row.operator("wm.switch_language", text="日本語").language = 'jp'
+        row.operator("wm.switch_language", text="中文").language = 'zh'
         layout.separator()
 
         # Display the model name property
@@ -416,7 +456,7 @@ def register():
     bpy.types.Scene.language = bpy.props.EnumProperty(
         name="Language",
         description="Choose the UI language.",
-        items=[('en', "English", ""), ('jp', "Japanese", "")]
+        items=[('en', "English", ""), ('jp', "Japanese", ""), ('zh', "Chinese", "")]
     )
     bpy.utils.register_class(SimpleOperatorPanel)
     bpy.utils.register_class(ExportFBXOperator)
