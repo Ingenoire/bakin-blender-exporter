@@ -1,10 +1,12 @@
 bl_info = {
-    "name": "Bakin DEF Exporter",
+    "name": "Bakin Model Exporter",
     "author": "ingenoire",
     "version": (1, 0),
     "blender": (2, 80, 0),
-    "location": "View3D > Sidebar > Bakin DEF Exporter Tab",
-    "description": "Exports DEF files for Bakin",
+    "location": "View3D > Sidebar > Bakin Model Exporter Tab",
+    "description": (
+        "BAKIN EN/JP: Exports Model files for Bakin."
+    ),
     "category": "3D View",
 }
 
@@ -15,15 +17,58 @@ import re
 
 from bpy.types import Operator, Panel
 
-texture_dict = {
-    'Base Color': "AMap",
-    'Normal': "NMap",
-    'LitMap': "LitMap",
-    'ShadeMap': "ShadeMap",
-    'NormalMap': "NormalMap",
-    'EmiMap': "EmiMap",
-    'MCMap': "MCMap",
-    'outlineWeight': "outlineWeight"
+# Define text for both languages
+TEXT = {
+    'en': {
+        'model_name': "Model Name",
+        'mask_map_options': "Mask Map Options",
+        'invert_roughness': "Invert Roughness",
+        'invert_metallic': "Invert Metallic",
+        'invert_emissive': "Invert Emissive",
+        'invert_specular': "Invert Specular",
+        'important_info': "Important Information:",
+        'limitations': "Limitations:",
+        'limitations_details': [
+            "• Addon will generate a mask map and search for a texture connected to the following shader nodes:",
+            "  - Metallic, Roughness, Emission Color, and Specular Tint.",
+            "• Only supports Principled BSDF (PBR); not all models will work due to various reasons.",
+            "• Emission and Specular features are untested."
+        ],
+        'tips_for_bakin': "Tips for BAKIN:",
+        'tips_details': [
+            "• Under the Textures tab, it might be worth considering turning on SRGB for some textures.",
+            "• Other possibilities to improve look: disable Vertex Compression in the Models section (in moderation),",
+            "  or put the Normal texture in the Textures section to 'Usage: Normal'.",
+            "• However, I'm not an expert in 3D modeling. :("
+        ],
+        'save_warning': "Please save the blend file to export!",
+        'export_button': "Export FBX + DEF"
+    },
+    'jp': {
+        'model_name': "モデル名",
+        'mask_map_options': "マスクマップオプション",
+        'invert_roughness': "ラフネス反転",
+        'invert_metallic': "メタリック反転",
+        'invert_emissive': "エミッシブ反転",
+        'invert_specular': "スペキュラ反転",
+        'important_info': "重要な情報:",
+        'limitations': "制限事項:",
+        'limitations_details': [
+            "• アドオンはマスクマップを生成し、次のシェーダーノードに接続されたテクスチャを検索します:",
+            "  - メタリック、ラフネス、エミッシブカラー、スペキュラー",
+            "• Principled BSDF (PBR) のみサポートされており、さまざまな理由でモデルが機能しないことがあります。",
+            "• エミッシブとスペキュラー機能は未検証です。"
+        ],
+        'tips_for_bakin': "BAKIN のためのヒント:",
+        'tips_details': [
+            "• テクスチャタブで、いくつかのテクスチャに対して SRGB をオンにすることを検討してください。",
+            "• 見た目を改善するためのその他の可能性: モデルセクションで頂点圧縮を無効にする（適度に）、",
+            "  またはノーマルテクスチャをテクスチャセクションの「Usage: Normal」に設定する。",
+            "• ただし、私は3Dモデリングの専門家ではありません。 :("
+        ],
+        'save_warning': "エクスポートするにはブレンドファイルを保存してください!",
+        'export_button': "FBX + DEF エクスポート"
+    }
 }
 
 class ExportFBXOperator(Operator):
@@ -122,8 +167,8 @@ def generate_unity_mask_map(material, output_path):
     # Get connected textures
     metallic_tex_image = get_image_from_node(principled_bsdf.inputs.get('Metallic', None))
     roughness_tex_image = get_image_from_node(principled_bsdf.inputs.get('Roughness', None))
-    emissive_tex_image = get_image_from_node(principled_bsdf.inputs.get('Emission', None))
-    specular_tex_image = get_image_from_node(principled_bsdf.inputs.get('Specular', None))
+    emissive_tex_image = get_image_from_node(principled_bsdf.inputs.get('Emission Color', None))
+    specular_tex_image = get_image_from_node(principled_bsdf.inputs.get('Specular Tint', None))
 
     # Default size if no textures are found
     width, height = 1024, 1024
@@ -135,16 +180,6 @@ def generate_unity_mask_map(material, output_path):
         width, height = emissive_tex_image.size
     elif specular_tex_image:
         width, height = specular_tex_image.size
-
-    # Create dummy images if needed
-    if not metallic_tex_image:
-        metallic_tex_image = create_dummy_image("MetallicDummy", width, height)
-    if not roughness_tex_image:
-        roughness_tex_image = create_dummy_image("RoughnessDummy", width, height)
-    if not emissive_tex_image:
-        emissive_tex_image = create_dummy_image("EmissiveDummy", width, height)
-    if not specular_tex_image:
-        specular_tex_image = create_dummy_image("SpecularDummy", width, height)
 
     # Set up compositing
     comp_scene = bpy.context.scene
@@ -169,7 +204,10 @@ def generate_unity_mask_map(material, output_path):
     emissive_node.image = emissive_tex_image
     
     # Add Invert node for Roughness to Smoothness conversion
-    invert_node = comp_nodes.new(type='CompositorNodeInvert')
+    invert_node_e = comp_nodes.new(type='CompositorNodeInvert')
+    invert_node_m = comp_nodes.new(type='CompositorNodeInvert')
+    invert_node_r = comp_nodes.new(type='CompositorNodeInvert')
+    invert_node_s = comp_nodes.new(type='CompositorNodeInvert')
 
     specular_node = comp_nodes.new(type='CompositorNodeImage')
     specular_node.image = specular_tex_image
@@ -183,10 +221,30 @@ def generate_unity_mask_map(material, output_path):
     output_node.base_path = output_path
     output_node.file_slots[0].path = output_filename
 
-    # Link nodes
-    comp_links.new(roughness_node.outputs['Image'], invert_node.inputs['Color'])
-    comp_links.new(invert_node.outputs['Color'], combine_node.inputs['G'])
-    comp_links.new(metallic_node.outputs['Image'], combine_node.inputs['B'])
+    if roughness_tex_image and bpy.context.scene.invert_roughness:
+        comp_links.new(roughness_node.outputs['Image'], invert_node_r.inputs['Color'])
+        comp_links.new(invert_node_r.outputs['Color'], combine_node.inputs['G'])
+    elif roughness_tex_image:
+        comp_links.new(roughness_node.outputs['Image'], combine_node.inputs['G'])
+
+    if metallic_tex_image and bpy.context.scene.invert_metallic:
+        comp_links.new(metallic_node.outputs['Image'], invert_node_e.inputs['Color'])
+        comp_links.new(invert_node_e.outputs['Color'], combine_node.inputs['B'])
+    elif metallic_tex_image:
+        comp_links.new(metallic_node.outputs['Image'], combine_node.inputs['B'])
+
+    if emissive_tex_image and bpy.context.scene.invert_emissive:
+        comp_links.new(emissive_node.outputs['Image'], invert_node_e.inputs['Color'])
+        comp_links.new(invert_node_e.outputs['Color'], combine_node.inputs['R'])
+    elif emissive_tex_image:
+        comp_links.new(emissive_node.outputs['Image'], combine_node.inputs['R'])
+
+    if specular_tex_image and bpy.context.scene.invert_specular:
+        comp_links.new(specular_node.outputs['Image'], invert_node_s.inputs['Color'])
+        comp_links.new(invert_node_s.outputs['Color'], combine_node.inputs['A'])
+    elif specular_tex_image:
+        comp_links.new(specular_node.outputs['Image'], combine_node.inputs['A'])
+    
     comp_links.new(combine_node.outputs['Image'], output_node.inputs['Image'])
 
     # Render the scene to create the image
@@ -196,26 +254,74 @@ def generate_unity_mask_map(material, output_path):
 
     return output_filename
 
-
-
 class SimpleOperatorPanel(Panel):
-    bl_label = "Bakin FBX+DEF Exporter"
+    bl_label = "Bakin Model Exporter"
     bl_idname = "OBJECT_PT_my_simple_operator"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Bakin FBX+DEF"
+    bl_category = "Bakin Model Exporter"
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
 
-        layout.prop(scene, "model_name", text="Model Name")
-        warning_text = "Caution: Blend file must be saved to work. (saves in a folder in that directory). Make sure your materials don't use any spaces. Make sure textures don't have their file extension in their name on Blender."
-        for line in warning_text.split('. '):
-            layout.row().label(text=line)
-        
-        # Export button
-        layout.operator("object.export_fbx_def", text="Export FBX + DEF", icon='EXPORT')
+        # Add language buttons
+        row = layout.row()
+        row.operator("wm.switch_language", text="English").language = 'en'
+        row.operator("wm.switch_language", text="日本語").language = 'jp'
+        layout.separator()
+
+        # Display the model name property
+        layout.label(text=TEXT[scene.language]['model_name'], icon="LINE_DATA")
+        layout.prop(scene, "model_name")
+        layout.separator()
+
+        # Add a header and checkboxes for inversion options
+        layout.label(text=TEXT[scene.language]['mask_map_options'], icon="TEXTURE_DATA")
+
+        # Add checkboxes for inversion
+        layout.prop(scene, "invert_roughness", text=TEXT[scene.language]['invert_roughness'])
+        layout.prop(scene, "invert_metallic", text=TEXT[scene.language]['invert_metallic'])
+        layout.prop(scene, "invert_emissive", text=TEXT[scene.language]['invert_emissive'])
+        layout.prop(scene, "invert_specular", text=TEXT[scene.language]['invert_specular'])
+
+        # Add a separator after the last checkbox
+        layout.separator()
+
+        # Warning paragraph above the export button
+        box = layout.box()
+        box.label(text=TEXT[scene.language]['important_info'], icon='INFO')
+        for line in TEXT[scene.language]['limitations_details']:
+            box.label(text=line)
+        box.separator()
+        box.label(text=TEXT[scene.language]['tips_for_bakin'])
+        for line in TEXT[scene.language]['tips_details']:
+            box.label(text=line)
+
+        # Check if the blend file is saved
+        is_file_saved = bpy.data.filepath != ""
+
+        # Add Export button
+        if not is_file_saved:
+            # Grey out the button and add a warning message
+            row = layout.row()
+            row.alert = True  # Show a warning icon
+            row.label(text=TEXT[scene.language]['save_warning'])
+            row.operator("object.export_fbx_def", text=TEXT[scene.language]['export_button'], icon='EXPORT').enabled = False
+        else:
+            # Enable the button if the file is saved
+            layout.operator("object.export_fbx_def", text=TEXT[scene.language]['export_button'], icon='EXPORT')
+
+class SwitchLanguageOperator(Operator):
+    bl_idname = "wm.switch_language"
+    bl_label = "Switch Language"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    language: bpy.props.StringProperty()
+
+    def execute(self, context):
+        context.scene.language = self.language
+        return {'FINISHED'}
 
 def sanitize_filename(filename):
     return re.sub(r'[^\w\s-]', '', filename).strip().replace(' ', '_')
@@ -287,13 +393,45 @@ def register():
         description="Name of the model to be exported.",
         default="Model Name (Bakin)",
     )
+    bpy.types.Scene.invert_roughness = bpy.props.BoolProperty(
+        name="Invert Roughness",
+        description="Invert the Roughness texture.",
+        default=False
+    )
+    bpy.types.Scene.invert_metallic = bpy.props.BoolProperty(
+        name="Invert Metallic",
+        description="Invert the Metallic texture.",
+        default=False
+    )
+    bpy.types.Scene.invert_emissive = bpy.props.BoolProperty(
+        name="Invert Emissive",
+        description="Invert the Emissive texture.",
+        default=False
+    )
+    bpy.types.Scene.invert_specular = bpy.props.BoolProperty(
+        name="Invert Specular",
+        description="Invert the Specular texture.",
+        default=False
+    )
+    bpy.types.Scene.language = bpy.props.EnumProperty(
+        name="Language",
+        description="Choose the UI language.",
+        items=[('en', "English", ""), ('jp', "Japanese", "")]
+    )
     bpy.utils.register_class(SimpleOperatorPanel)
     bpy.utils.register_class(ExportFBXOperator)
+    bpy.utils.register_class(SwitchLanguageOperator)
 
 def unregister():
     del bpy.types.Scene.model_name
+    del bpy.types.Scene.invert_roughness
+    del bpy.types.Scene.invert_metallic
+    del bpy.types.Scene.invert_emissive
+    del bpy.types.Scene.invert_specular
+    del bpy.types.Scene.language
     bpy.utils.unregister_class(SimpleOperatorPanel)
     bpy.utils.unregister_class(ExportFBXOperator)
+    bpy.utils.unregister_class(SwitchLanguageOperator)
 
 if __name__ == "__main__":
     register()
