@@ -6,6 +6,9 @@
 - *If you wish to import a VRM from VRoid Studio, use this Blender add-on instead: https://github.com/Ingenoire/bakin-vrm-blender*
 
 ### Usage
+- Install the blender add-on by going to Edit -> Preferences, going to Add-ons, and selecting in the top-right the Install from Disk option (hidden in a small square on 4.2+)
+  - On older versions of Blender, make sure to tick the box to enable the add-on.
+- You'll find the Add-on on the right menu, which can be opened by pressing N, or clicking on the little arrow.
 - Make sure your model uses Principled BSDF shader nodes (PBR), and save the blend file project.
 - Make sure your texture nodes in the shader nodes connect to the standard inputs.
 - Define a model name in the addon. This will define the folder name, model filename, and def filename, and will be saved in the folder where your blend file is.
