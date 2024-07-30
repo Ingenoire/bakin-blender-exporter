@@ -25,6 +25,7 @@ A Blender Addon that allows you to quickly export (in a single-click) FBX models
   - Join models together if they share material names, or rename materials to be different if they're actually different.
   - Try to keep shader node shenanigans as low as possible, or preferably bake your textures with an addon like Simple Bake.
   - Having multiple textures connected to a single input on the Principled BSDF probably won't work / get the wrong texture.
+- I'm just as clueless as you are, I just "made" this addon by wrestling with two different AIs. Feel free to improve/fix upon this addon, I literally don't know much about 3D modelling in general.
 
 ### Credits
 - Models shown are from Blenderkit (https://www.blenderkit.com/)
