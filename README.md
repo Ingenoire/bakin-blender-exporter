@@ -1,7 +1,9 @@
 # bakin-blender-exporter
 ![alt_text](https://i.imgur.com/ShF4IMf.png)
 
-A Blender Addon that allows you to quickly export (in a single-click) FBX models and their material definitions (.def files) for RPG Developer BAKIN, letting you easily import your models into Bakin without having to manually import every texture for every model!
+**A Blender Addon that allows you to quickly export (in a single-click) FBX models and their material definitions (.def files) for RPG Developer BAKIN, letting you easily import your models into Bakin without having to manually import every texture for every model!**
+
+- *If you wish to import a VRM from VRoid Studio, use this Blender add-on instead: https://github.com/Ingenoire/bakin-vrm-blender*
 
 ### Usage
 - Make sure your model uses Principled BSDF shader nodes (PBR), and save the blend file project.
